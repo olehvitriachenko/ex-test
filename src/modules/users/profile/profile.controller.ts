@@ -4,7 +4,7 @@ import { ResetPasswordDTO, SetPasswordDTO, ViewProfileDTO } from "./dto";
 import { randomUUID } from "crypto";
 
 @Controller('profile')
-export class ProfileContoller {
+export class ProfileController {
 constructor (private readonly profileService: ProfileService) {
 
 }
