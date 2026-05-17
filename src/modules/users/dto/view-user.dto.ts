@@ -8,6 +8,6 @@ export class ViewUserDTO {
   lastName!: string;
   role!: UserRole;
   status!: UserAccountStatus;
-  createdAt!: string;
-  createdBy!: string;
+  createdAt!: Date;
+  createdBy!: string | null;
 }

@@ -1,53 +1,90 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { CreateUserDTO, UpdateUserDTO, UpdateUserStatusDTO, ViewUserDTO } from "./dto";
-import { UserAccountStatus } from "./enums";
-import { randomUUID } from 'crypto';
+import { PrismaService } from "src/prisma";
+import { UserStatus } from "generated/prisma/enums";
+import { mapUserRoleToDB, toViewUserDTO } from "./mappers";
+import { mapUserStatusToDB } from "./mappers/user-status.mapper";
 
 @Injectable()
 export class UsersService {
-    private users: ViewUserDTO[] = []
 
-    createUser(data: CreateUserDTO): ViewUserDTO {
-    const user: ViewUserDTO = {
-        id: randomUUID(),
-        ...data,
-        status: UserAccountStatus.ACTIVE,
-        createdAt: Date.now().toString(),
-        createdBy: ""
-    };
 
-    this.users.push(user)
 
-    return user
+    constructor( private readonly prisma: PrismaService ) {}
+
+    async createUser(data: CreateUserDTO): Promise<ViewUserDTO> {
+
+        const dataRole = mapUserRoleToDB(data.role)
+
+        const user = await this.prisma.user.create({
+              data: {
+                role: dataRole,
+                firstName: data.firstName,
+                lastName: data.lastName,
+                email: data.email,
+                status: UserStatus.active,
+              }        
+        })
+        return toViewUserDTO(user)
     }
 
-    getUsersList(): ViewUserDTO[] {
-            return this.users;
+    async getUsersList(): Promise<ViewUserDTO[]> {
+            const users = await this.prisma.user.findMany();
+
+            return users.map(toViewUserDTO)
     }
 
-    getUser(id: string): ViewUserDTO {
-        const user = this.users.find((user) => user.id === id)
+    async getUser(id: string): Promise<ViewUserDTO> {
 
-        if(!user) {
-            throw new NotFoundException('User not found')
+       const user = await this.prisma.user.findUnique({
+        where: {
+            id,
         }
+       })
 
-        return user
+       if (!user) {
+        throw new NotFoundException(
+            'User not found'
+        );
+       }
+
+       return toViewUserDTO(user)
     }
 
-    updateUser(id: string, data: UpdateUserDTO): ViewUserDTO {
-        const user = this.getUser(id);
+    async updateUser(id: string, data: UpdateUserDTO): Promise<ViewUserDTO> {
+        await this.getUser(id)
 
-        Object.assign(user, data);
+        const user = await this.prisma.user.update({
+            where: {
+                id,
+            },
 
-        return user;
+            data: {
+                email: data.email,
+                firstName: data.firstName,
+                lastName: data.lastName,
+                role: data.role
+                    ? mapUserRoleToDB(data.role)
+                    : undefined,
+            },
+        });
+
+        return toViewUserDTO(user)
     }
 
-    updateUserStatus(id: string, data: UpdateUserStatusDTO): ViewUserDTO {
-        const user = this.getUser(id)
+    async updateUserStatus(id: string, data: UpdateUserStatusDTO): Promise<ViewUserDTO> {
+        await this.getUser(id)
+        const user = await this.prisma.user.update({
+            where: {
+                id
+            },
+            data: {
+                status: mapUserStatusToDB(
+                    data.status
+                )
+            }
+        })
 
-        user.status = data.status
-
-        return user
+        return toViewUserDTO(user)
     }
 }
