@@ -3,6 +3,7 @@ import { UsersController } from './users.controller';
 import { UsersService } from './users.service';
 import { ProfileController } from './profile';
 import { ProfileService } from './profile/profile.service';
+import { UserViewMapper } from './mappers';
 
 @Module({
   controllers: [ProfileController, UsersController],

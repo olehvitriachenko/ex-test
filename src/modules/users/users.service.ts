@@ -2,16 +2,18 @@ import { Injectable, NotFoundException } from "@nestjs/common";
 import { CreateUserDTO, UpdateUserDTO, UpdateUserStatusDTO, ViewUserDTO } from "./dto";
 import { PrismaService } from "src/prisma";
 import { UserStatus } from "generated/prisma/enums";
-import { mapUserRoleToDB, toViewUserDTO } from "./mappers";
+import { mapUserRoleToDB, UserViewMapper } from "./mappers";
 import { mapUserStatusToDB } from "./mappers/user-status.mapper";
 
 @Injectable()
 export class UsersService {
 
+    private readonly mapper = new UserViewMapper();
 
-
-    constructor( private readonly prisma: PrismaService ) {}
-
+    constructor( 
+        private readonly prisma: PrismaService,
+     ) {}
+ 
     async createUser(data: CreateUserDTO): Promise<ViewUserDTO> {
 
         const dataRole = mapUserRoleToDB(data.role)
@@ -25,13 +27,13 @@ export class UsersService {
                 status: UserStatus.active,
               }        
         })
-        return toViewUserDTO(user)
+        return this.mapper.mapOne(user)
     }
 
     async getUsersList(): Promise<ViewUserDTO[]> {
             const users = await this.prisma.user.findMany();
 
-            return users.map(toViewUserDTO)
+                    return this.mapper.mapMany(users)
     }
 
     async getUser(id: string): Promise<ViewUserDTO> {
@@ -48,7 +50,7 @@ export class UsersService {
         );
        }
 
-       return toViewUserDTO(user)
+       return this.mapper.mapOne(user)
     }
 
     async updateUser(id: string, data: UpdateUserDTO): Promise<ViewUserDTO> {
@@ -69,7 +71,8 @@ export class UsersService {
             },
         });
 
-        return toViewUserDTO(user)
+       return this.mapper.mapOne(user)
+
     }
 
     async updateUserStatus(id: string, data: UpdateUserStatusDTO): Promise<ViewUserDTO> {
@@ -85,6 +88,7 @@ export class UsersService {
             }
         })
 
-        return toViewUserDTO(user)
+       return this.mapper.mapOne(user)
+
     }
 }
